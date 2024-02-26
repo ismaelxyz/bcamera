@@ -1,5 +1,5 @@
-import { Stack, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Platform } from 'react-native';
 import {
   View,
   Text,
@@ -22,6 +22,27 @@ import {
 } from 'react-native-vision-camera';
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 import { Video } from 'expo-av';
+
+
+interface IconButtonProps {
+  iconName: keyof typeof Ionicons.glyphMap;
+  onPress: () => void;
+  size?: number;
+  color?: string;
+}
+
+const IconButton: React.FC<IconButtonProps> = ({
+  iconName,
+  onPress,
+  size = 30,
+  color = 'black',
+}) => {
+  return (
+    <View style={{ backgroundColor: 'white',  borderRadius: 5, padding: 2 }}>
+      <Ionicons name={iconName} onPress={onPress} size={size} color={color} />
+    </View>
+  );
+};
 
 const App = () => {
   const device = useCameraDevice('back', {
@@ -52,14 +73,6 @@ const App = () => {
 
   const [mode, setMode] = useState('camera');
 
-  useFocusEffect(
-    useCallback(() => {
-      setIsActive(true);
-      return () => {
-        setIsActive(false);
-      };
-    }, [])
-  );
 
   useEffect(() => {
     if (!hasPermission) {
@@ -123,8 +136,6 @@ const App = () => {
   console.log('QR camer: ', mode === 'qr' && isActive && !photo && !video);
   return (
     <View style={{ flex: 1 }}>
-      <Stack.Screen options={{ headerShown: false }} />
-
       {mode === 'qr' ? (
         <Camera
           device={device}
@@ -191,40 +202,49 @@ const App = () => {
               top: 50,
               padding: 10,
               borderRadius: 5,
-              backgroundColor: 'rgba(0, 0, 0, 0.40)',
+              backgroundColor: 'rgba(170, 170, 170, 0.90)',
               gap: 30,
             }}
           >
-            <Ionicons
-              name={'flash-off'}
+            <IconButton
+              iconName={flash === 'off' ? 'flash-off' : 'flash'}
               onPress={() =>
                 setFlash((curValue) => (curValue === 'off' ? 'on' : 'off'))
               }
-              size={30}
-              color="white"
             />
 
-            <Ionicons
-              name={mode === 'camera' ? 'qr-code-sharp' : 'camera'}
+            <IconButton
+              iconName={mode === 'camera' ? 'qr-code-sharp' : 'camera'}
               onPress={() => setMode(mode === 'qr' ? 'camera' : 'qr')}
-              size={30}
-              color="white"
             />
           </View>
 
-          <Pressable
-            onPress={onTakePicturePressed}
-            onLongPress={onStartRecording}
-            style={{
-              position: 'absolute',
-              alignSelf: 'center',
-              bottom: 50,
-              width: 75,
-              height: 75,
-              backgroundColor: isRecording ? 'red' : 'white',
-              borderRadius: 75,
-            }}
-          />
+          <View style={{
+                position: 'absolute',
+                alignSelf: 'center',
+                bottom: 50,
+                width: 70,
+                height: 70,
+                backgroundColor: 'white',
+                borderRadius: 40,
+                opacity: 0.4,
+                alignItems: 'center',
+                justifyContent: 'center',
+          
+              }}>
+            <Pressable
+              onPress={onTakePicturePressed}
+              onLongPress={onStartRecording}
+              style={{
+                
+                width: 50,
+                height: 50,
+                backgroundColor: isRecording ? 'red' : 'white',
+                borderRadius: 30,
+          
+              }}
+            />
+          </View>
         </>
       )}
     </View>

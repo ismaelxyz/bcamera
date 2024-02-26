@@ -1,2 +1,0 @@
-npx create-expo-app StickerSmash
-npx expo install react-native-vision-camera
