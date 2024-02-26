@@ -1,24 +1,17 @@
-import { useState } from "react";
-import { TouchableOpacity, StyleSheet, Text, View } from 'react-native';
+import { TouchableOpacity, StyleSheet, Text } from 'react-native';
+
 
 interface TextButtonProps {
-    text: string
+    text: string;
+    onPress: () => void;
 }
 
-export default function TextButton({ text }: TextButtonProps): React.ReactElement<TextButtonProps> {
-    const [pressed, setPressed] = useState(false);
 
-    const handlePress = () => {
-        setPressed(!pressed);
-    };
-
+export default function TextButton({ text, onPress }: TextButtonProps): React.ReactElement<TextButtonProps> {
+  
     return (
-        <TouchableOpacity
-            onPress={handlePress}
-            style={[styles.button, pressed && styles.buttonPressed]}
-        >
+        <TouchableOpacity onPress={onPress} style={styles.button}>
             <Text style={styles.buttonText}>{text}</Text>
-            {pressed && <View style={styles.diagonalLine} />}
         </TouchableOpacity>
     );
 };
@@ -43,12 +36,5 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: 'bold',
         marginRight: 0,
-    },
-    diagonalLine: {
-        position: 'absolute',
-        width: '100%',
-        height: 2,
-        backgroundColor: 'black',
-        transform: [{ rotate: '45deg' }],
-    },
+    }
 });

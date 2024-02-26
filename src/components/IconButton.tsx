@@ -1,9 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import { View, StyleSheet } from 'react-native';
-import { PressableOpacity } from 'react-native-pressable-opacity';
+import { TouchableOpacity, StyleSheet } from 'react-native';
 import MaterialIcon from 'react-native-vector-icons/MaterialCommunityIcons';
 
-// react-native-gesture-handler and react-native-reanimated
+
 interface IconButtonProps {
     iconName: keyof typeof Ionicons.glyphMap;
     onPress: () => void;
@@ -19,9 +18,9 @@ export const IconButton: React.FC<IconButtonProps> = ({
     color = 'black',
 }) => {
     return (
-        <PressableOpacity style={styles.container}>
+        <TouchableOpacity style={styles.container}>
             <Ionicons name={iconName} onPress={onPress} size={size} color={color} disabledOpacity={0.4} />
-        </PressableOpacity>
+        </TouchableOpacity>
     );
 };
 
@@ -32,6 +31,7 @@ interface MaterialButtonProps {
     color?: string;
 }
 
+
 export const MaterialButton: React.FC<MaterialButtonProps> = ({
     iconName,
     onPress,
@@ -39,13 +39,11 @@ export const MaterialButton: React.FC<MaterialButtonProps> = ({
     color = 'black',
 }) => {
     return (
-        <PressableOpacity style={styles.container} disabledOpacity={0.4}>
+        <TouchableOpacity style={styles.container}>
             <MaterialIcon name={iconName} onPress={onPress} size={size} color={color}  />
-        </PressableOpacity>
+        </TouchableOpacity>
     );
 };
-
-
 
 
 const styles = StyleSheet.create({
@@ -56,5 +54,3 @@ const styles = StyleSheet.create({
     }
 
 });
-
-// export default IconButton;
