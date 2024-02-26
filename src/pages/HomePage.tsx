@@ -1,6 +1,8 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import IconButton from "../components/IconButton";
+import React, { useEffect, useRef, useState } from 'react';
+import { IconButton, MaterialButton } from "../components/IconButton";
 import TextButton from "../components/TextButton";
+import { SCREEN_HEIGHT, SCREEN_WIDTH } from "../Constants";
+
 import {
   View,
   Text,
@@ -19,23 +21,20 @@ import {
   PhotoFile,
   TakePhotoOptions,
   VideoFile,
-  useCodeScanner,
+  useCameraFormat,
 } from 'react-native-vision-camera';
+import DropDownPicker from 'react-native-dropdown-picker';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { Video } from 'expo-av';
 
 
 export default function HomePage(): React.ReactElement {
-  const device = useCameraDevice('back', {
+
+  const [cameraPosition, setCameraPosition] = useState<'front' | 'back'>('back');
+  const device = useCameraDevice(cameraPosition, {
     physicalDevices: ['ultra-wide-angle-camera'],
   });
-  const codeScanner = useCodeScanner({
-    codeTypes: ['qr', 'ean-13'],
-    onCodeScanned: (codes) => {
-      console.log(`Scanned ${codes.length} codes!`);
-      console.log(codes[0]);
-    },
-  });
+  
 
   const { hasPermission, requestPermission } = useCameraPermission();
   const {
@@ -43,16 +42,35 @@ export default function HomePage(): React.ReactElement {
     requestPermission: requestMicrophonePermission,
   } = useMicrophonePermission();
 
+  const [targetFps, setTargetFps] = useState(60);
+
+  const screenAspectRatio = SCREEN_HEIGHT / SCREEN_WIDTH
+  const format = useCameraFormat(device, [
+    { fps: targetFps },
+    { videoAspectRatio: screenAspectRatio },
+    { videoResolution: 'max' },
+    { photoAspectRatio: screenAspectRatio },
+    { photoResolution: 'max' },
+  ]);
+
+
+  const fps = Math.min(format?.maxFps ?? 1, targetFps);
+
+  const supportsFlash = device?.hasFlash ?? false;
+  const supportsHdr = format?.supportsPhotoHdr;
+
   const [isActive, setIsActive] = useState(false);
-  const [flash, setFlash] = useState<TakePhotoOptions['flash']>('off');
+  const [flash, setFlash] = useState<'off' | 'on'>('off');
+  const [enableHdr, setEnableHdr] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
 
   const [photo, setPhoto] = useState<PhotoFile>();
   const [video, setVideo] = useState<VideoFile>();
 
   const camera = useRef<Camera>(null);
-
-  const [mode, setMode] = useState('camera');
+  const [openDropDown, setOpenDropDown] = useState(false);
+  const [currentExample, setCurrentExample] = useState('take-photo');
+  const [sound, setSound] = useState(true);
 
 
   useEffect(() => {
@@ -72,8 +90,10 @@ export default function HomePage(): React.ReactElement {
     }
 
     const photo = await camera.current?.takePhoto({
-      flash,
+      flash: flash,
+      enableShutterSound: sound
     });
+    // onMediaCaptured(photo, 'photo');
     setPhoto(photo);
   };
 
@@ -81,9 +101,10 @@ export default function HomePage(): React.ReactElement {
     if (!camera.current) {
       return;
     }
+
     setIsRecording(true);
     camera.current.startRecording({
-      flash: flash === 'on' ? 'on' : 'off',
+      flash: flash,
       onRecordingFinished: (video) => {
         console.log(video);
         setIsRecording(false);
@@ -114,25 +135,21 @@ export default function HomePage(): React.ReactElement {
   if (!device) {
     return <Text>Camera device not found</Text>;
   }
-  console.log('QR camer: ', mode === 'qr' && isActive && !photo && !video);
+  // console.log('QR camer: ', mode === 'qr' && isActive && !photo && !video);
   return (
     <View style={{ flex: 1 }}>
-      {mode === 'qr' ? (
-        <Camera
-          device={device}
-          codeScanner={codeScanner}
-          style={StyleSheet.absoluteFill}
-          isActive={mode === 'qr' && isActive && !photo && !video}
-        />
-      ) : (
+      {(
         <Camera
           ref={camera}
           style={StyleSheet.absoluteFill}
           device={device}
-          isActive={isActive && !photo && !video && mode === 'camera'}
-          photo
-          video
-          audio
+          zoom={device.minZoom}
+          isActive={isActive && !photo && !video}
+          photoHdr={format?.supportsPhotoHdr && enableHdr}
+          videoHdr={format?.supportsVideoHdr && enableHdr}
+          photo={true}
+          video={true}
+          audio={true}
         />
       )}
 
@@ -145,6 +162,13 @@ export default function HomePage(): React.ReactElement {
             }}
             useNativeControls
             isLooping
+          />
+          <FontAwesome5
+            onPress={() => setVideo(undefined)}
+            name="arrow-left"
+            size={25}
+            color="white"
+            style={{ position: 'absolute', top: 50, left: 30 }}
           />
         </>
       )}
@@ -176,22 +200,14 @@ export default function HomePage(): React.ReactElement {
 
       {!photo && !video && (
         <>
-          <View
-            style={{
-              position: 'absolute',
-              right: 10,
-              top: 50,
-              padding: 10,
-              borderRadius: 5,
-              backgroundColor: 'rgba(180, 180, 180, 1)',
-              gap: 10,
-            }}
-          >
-
+          <View style={styles.panelView} >
 
             <IconButton
               iconName={"sync-outline"}
-              onPress={() => null}
+              onPress={
+                () =>
+                  setCameraPosition((p) => (p === 'back' ? 'front' : 'back'))
+              }
             />
 
             <IconButton
@@ -202,49 +218,29 @@ export default function HomePage(): React.ReactElement {
             />
 
             <IconButton
-              iconName={mode === 'camera' ? 'volume-low-outline' : 'volume-off-outline'}
-              onPress={() => setMode(mode === 'qr' ? 'camera' : 'qr')}
+              iconName={sound ? 'volume-low-outline' : 'volume-off-outline'}
+              onPress={() => setSound((curSound) => !curSound)}
             />
 
-            <TextButton text={'HDR'} />
-            <TextButton text={'60fps'} />
+            <MaterialButton 
+                iconName={enableHdr ? 'hdr' : 'hdr-off'}
+                onPress={() => setEnableHdr((h) => !h)}
+            />
 
+            <TextButton text={'60fps'} />
 
           </View>
 
           <Pressable
             onPress={onTakePicturePressed}
             onLongPress={onStartRecording}
-            style={{
-              position: 'absolute',
-              alignSelf: 'center',
-              bottom: 50,
-              width: 70, // Ajusta el tamaño del Pressable
-              height: 70, // Ajusta el tamaño del Pressable
-              borderRadius: 40, // Ajusta el radio del borde
-              opacity: 0.4,
-              alignItems: 'center',
-              justifyContent: 'center', // Alinear de abajo hacia arriba en el centro
-              backgroundColor: 'white',
-              shadowColor: '#000',
-              shadowOffset: {
-                width: 0,
-                height: 2,
-              },
-              shadowOpacity: 0.25,
-              shadowRadius: 3.84,
-              elevation: 5,
-            }}
+            style={styles.captureButton}
           >
             <View
-              style={{
-                width: 50, // Ajusta el tamaño del Pressable
-                height: 50, // Ajusta el tamaño del Pressable
-                backgroundColor: isRecording ? 'red' : 'white',
-                borderRadius: 30, // Ajusta el radio del borde
-                alignItems: 'center', // Alinear horizontalmente en el centro
-                justifyContent: 'center', // Alinear verticalmente en el centro
-              }}
+              style={[
+                styles.captureButtonInner,
+                { backgroundColor: isRecording ? 'red' : 'white'}
+              ]}
             />
           </Pressable>
 
@@ -255,5 +251,40 @@ export default function HomePage(): React.ReactElement {
 };
 
 const styles = StyleSheet.create({
-
+  panelView: {
+    position: 'absolute',
+    right: 10,
+    top: 50,
+    padding: 10,
+    borderRadius: 5,
+    backgroundColor: 'rgba(180, 180, 180, 1)',
+    gap: 10,
+  },
+  captureButton: {
+    position: 'absolute',
+    alignSelf: 'center',
+    bottom: 50,
+    width: 70, 
+    height: 70, 
+    borderRadius: 40, 
+    opacity: 0.4,
+    alignItems: 'center',
+    justifyContent: 'center', 
+    backgroundColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  captureButtonInner: {
+    width: 50, 
+    height: 50,
+    borderRadius: 30, 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+  }
 });
