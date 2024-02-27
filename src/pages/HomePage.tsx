@@ -48,11 +48,12 @@ Reanimated.addWhitelistedNativeProps({
 const ReanimatedCamera = Reanimated.createAnimatedComponent(Camera);
 
 
+
 export default function HomePage(): React.ReactElement {
 
   const [cameraPosition, setCameraPosition] = useState<'front' | 'back'>('back');
   const device = useCameraDevice(cameraPosition, {
-    //physicalDevices: ['ultra-wide-angle-camera'],
+    // physicalDevices: ['ultra-wide-angle-camera'],
   });
   const zoom = useSharedValue(device?.neutralZoom);
   const zoomOffset = useSharedValue(0);
@@ -96,22 +97,24 @@ export default function HomePage(): React.ReactElement {
 
   const fps = Math.min(format?.maxFps ?? 1, targetFps);
   const [flash, setFlash] = useState<'off' | 'on'>('off');
+  const [mediaCount, setMediaCount] = useState(0);
   const [enableHdr, setEnableHdr] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
-
-  const [photo, setPhoto] = useState<PhotoFile>();
-  const [video, setVideo] = useState<VideoFile>();
+  const [sound, setSound] = useState(true);
 
   const camera = useRef<Camera>(null);
-  const [sound, setSound] = useState(true);
+  const [thumbnails, setThumbnails] = useState<Array<PhotoFile | VideoFile>>([]);
+  const [photo, setPhoto] = useState<PhotoFile>();
+  const [video, setVideo] = useState<VideoFile>();
 
   const onFocusTap = useCallback(
     ({ nativeEvent: event }: GestureResponderEvent) => {
       if (!device?.supportsFocus) return
+     
       camera.current?.focus({
         x: event.locationX,
         y: event.locationY,
-      })
+      });
     },
     [device?.supportsFocus],
   );
@@ -137,7 +140,13 @@ export default function HomePage(): React.ReactElement {
       flash: flash,
       enableShutterSound: sound
     });
-    // onMediaCaptured(photo, 'photo');
+    
+    setMediaCount(mediaCount + 1);
+    if (photo) {
+      //thumbnails.push(photo);
+      // setThumbnails([photo, ...thumbnails.slice(0, -1)]);
+      thumbnails.push(photo);
+    }
     setPhoto(photo);
   };
 
@@ -152,6 +161,7 @@ export default function HomePage(): React.ReactElement {
       onRecordingFinished: (video) => {
         console.log(video);
         setIsRecording(false);
+        setMediaCount(mediaCount + 1);
         setVideo(video);
       },
       onRecordingError: (error) => {
@@ -166,8 +176,8 @@ export default function HomePage(): React.ReactElement {
       return;
     }
 
-    const result = await fetch(`file://${photo.path}`);
-    const data = await result.blob();
+    // const result = await fetch(`file://${photo.path}`);
+    // const data = await result.blob();
     
   };
 
@@ -284,10 +294,35 @@ export default function HomePage(): React.ReactElement {
             <View
               style={[
                 styles.captureButtonInner,
-                { backgroundColor: isRecording ? 'red' : 'white' }
+                { backgroundColor: isRecording ? 'red' : 'whitesmoke' }
               ]}
             />
           </Pressable>
+
+          
+            <> 
+              { thumbnails[0] && <Image
+                  source={{uri: `file://${thumbnails[0]}`}}
+                  style={styles.thumbnail}
+                />
+              }
+              { thumbnails[1] && <Image
+                  source={{uri: `file://${thumbnails[1]}`}}
+                  style={[styles.thumbnail, {left: 50, transform: [{rotate: '20deg'}]}]}
+                />
+              }
+              { thumbnails[2] && <Image
+                  source={{uri: `file://${thumbnails[2]}`}}
+                  style={[styles.thumbnail, {left: 55, transform: [{rotate: '40deg'}]}]}
+                />
+              }
+          </>
+          
+
+          <View style={styles.captureThumbnailCircle}>
+            <Text>{mediaCount}</Text>
+            
+          </View>
 
         </>
       )}
@@ -313,7 +348,7 @@ const styles = StyleSheet.create({
     width: 70,
     height: 70,
     borderRadius: 40,
-    opacity: 0.4,
+    opacity: 0.8,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'white',
@@ -332,6 +367,30 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  captureThumbnailCircle: {
+    position: 'absolute',
+    alignSelf: 'center',
+    bottom: 40,
+    left: 30,
+    width: 25,
+    height: 25,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'white',
+    zIndex: 4
+  },
+  thumbnail: {
+    //flex: 1,
+    position: 'absolute',
+    bottom: 40,
+    left: 45,
+    width: 26,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    //transform: [{rotate: '45deg'}], 
   },
   imageContainer: {
     position: 'absolute',
