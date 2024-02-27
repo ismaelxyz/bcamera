@@ -143,9 +143,7 @@ export default function HomePage(): React.ReactElement {
     
     setMediaCount(mediaCount + 1);
     if (photo) {
-      //thumbnails.push(photo);
-      // setThumbnails([photo, ...thumbnails.slice(0, -1)]);
-      thumbnails.push(photo);
+      setThumbnails([photo, ...thumbnails.slice(0, 2)]);
     }
     setPhoto(photo);
   };
@@ -302,17 +300,17 @@ export default function HomePage(): React.ReactElement {
           
             <> 
               { thumbnails[0] && <Image
-                  source={{uri: `file://${thumbnails[0]}`}}
+                  source={{uri: `file://${thumbnails[0].path}`}}
                   style={styles.thumbnail}
                 />
               }
               { thumbnails[1] && <Image
-                  source={{uri: `file://${thumbnails[1]}`}}
+                  source={{uri: `file://${thumbnails[1].path}`}}
                   style={[styles.thumbnail, {left: 50, transform: [{rotate: '20deg'}]}]}
                 />
               }
               { thumbnails[2] && <Image
-                  source={{uri: `file://${thumbnails[2]}`}}
+                  source={{uri: `file://${thumbnails[2].path}`}}
                   style={[styles.thumbnail, {left: 55, transform: [{rotate: '40deg'}]}]}
                 />
               }
